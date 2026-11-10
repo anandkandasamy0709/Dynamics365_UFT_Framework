@@ -1,0 +1,18 @@
+# Keep Windows line endings for scripts UFT / cscript read
+*.vbs   text eol=crlf
+*.mts   text eol=crlf
+*.ps1   text eol=crlf
+*.cfg   text eol=crlf
+*.usp   text eol=crlf
+*.usr   text eol=crlf
+*.ftsln text eol=crlf
+*.csv   text eol=crlf
+.env*   text eol=crlf
+
+# UFT binary files - never merge or normalise
+*.tsp  binary
+*.mtr  binary
+*.bdb  binary
+*.tsr  binary
+*.xls  binary
+*.xlsx binary

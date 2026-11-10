@@ -1,0 +1,22 @@
+# ---- Secrets: never commit real environment files ----
+.env
+.env.*
+!.env.example
+
+# ---- UFT run results / generated output ----
+Driver/Res*/
+Results/
+Reports/*
+!Reports/.gitkeep
+Screenshots/*
+!Screenshots/.gitkeep
+Scripts/*.log
+
+# ---- UFT / Windows housekeeping ----
+*.lck
+*.bak
+Driver/Watches.xml
+Driver/Action*/SnapShots/
+desktop.ini
+Thumbs.db
+~$*

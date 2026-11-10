@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 11.00
+# Visual Studio 2010
+# SharpDevelop 4.1.3.0
+Project("") = "Driver", "Driver\Test.tsp", "4F98EB7B-2356-4E72-BA5F-D32682A9A6D9"
+	ProjectSection(ProjectMetadata) = HP.UFT.ProjectSystem.Dynamic.ProjectMetadata
+		PathInformation = Driver\Test.tsp
+		Keyword = QTP
+		OpenAsReadOnly = False
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		4F98EB7B-2356-4E72-BA5F-D32682A9A6D9.Debug|Any CPU.Build.0 = Debug|Any CPU
+		4F98EB7B-2356-4E72-BA5F-D32682A9A6D9.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		4F98EB7B-2356-4E72-BA5F-D32682A9A6D9.Release|Any CPU.Build.0 = Release|Any CPU
+		4F98EB7B-2356-4E72-BA5F-D32682A9A6D9.Release|Any CPU.ActiveCfg = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(Function Libraries) = postProject
+	EndGlobalSection
+EndGlobal
