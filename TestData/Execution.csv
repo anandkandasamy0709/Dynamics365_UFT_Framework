@@ -2,3 +2,4 @@ TCName,Execute_Status,Function_Name,TestData
 TC01,No,TC_Sample_OpenApplication,
 TC02,No,TC_Sample_Login,user:${APP_USERNAME};pass:${APP_PASSWORD}
 TC03,Yes,TC_C9652593_CancelSalesOrder,
+TC04,Yes,TC_C9652592_CreateSalesOrder,customer:S005471;item:RD-RS-LA;qty:2;payMethod:cash;workUser:rohita
