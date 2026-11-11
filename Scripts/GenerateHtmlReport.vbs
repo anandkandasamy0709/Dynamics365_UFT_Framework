@@ -23,7 +23,7 @@ If Not fso.FileExists(csvPath) Then
 End If
 
 appName = ReadEnvValue(root & "\.env", "APP_NAME")
-If appName = "" Then appName = "Application"
+If appName = "" Then appName = "D365"
 
 total = 0 : passed = 0 : failed = 0 : skipped = 0 : rows = ""
 Set ts = fso.OpenTextFile(csvPath, 1, False, -2)
