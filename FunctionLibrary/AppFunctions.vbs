@@ -1609,3 +1609,35 @@ End Function
 Function D365_CreateOrderDialogOpen()
     D365_CreateOrderDialogOpen = GetPage().WebElement("xpath:=(//*[normalize-space(text())='Create sales order'])[1]").Exist(3)
 End Function
+
+
+' Number of Work ID cells with a value on the Work page (positive proof that work exists). RunScript on the visible page, -1 when the script fails.
+Function D365_CountWorkIdCells()
+    Dim r
+    D365_CountWorkIdCells = -1
+    On Error Resume Next
+    r = GetPage().RunScript("(function(){var n=0,els=document.querySelectorAll(""[data-dyn-controlname*='WorkId']"");for(var i=0;i<els.length;i++){var e=els[i];if(e.offsetParent===null)continue;var f=e.querySelector('input');var v=f?f.value:(e.innerText||'');if(/^\s*[A-Za-z0-9-]{4,}\s*$/.test(v)&&!/Work ID/i.test(v))n++;}return n;})()")
+    If Err.Number = 0 Then D365_CountWorkIdCells = CLng(r)
+    Err.Clear
+    On Error GoTo 0
+End Function
+
+' Sibling of D365_WaitWorkRows for the C21456407 flow: the wave work is created asynchronously, so the empty grid was once taken for "work listed"
+' (Complete work disabled, no User id field). Passes on a Work ID value in the grid; if the cells cannot be read (-1) the old empty-message check
+' is used after 45 s. Refreshes between rounds.
+Function D365_WaitWorkRowsStrict(timeoutSec, stepName)
+    Dim t, n, emptyMsg
+    D365_WaitWorkRowsStrict = False
+    emptyMsg = "xpath:=//*[contains(normalize-space(.),'anything to show here') and not(*[contains(normalize-space(.),'anything to show here')])]"
+    t = Timer
+    Do
+        D365_WaitIdle 20
+        n = D365_CountWorkIdCells()
+        If n > 0 Then D365_WaitWorkRowsStrict = True: Exit Do
+        If n < 0 And Timer - t > 45 Then
+            If Not GetPage().WebElement(emptyMsg).Exist(3) Then D365_WaitWorkRowsStrict = True: Exit Do
+        End If
+        D365FO_ClickCtl "SystemDefinedRefreshButton", "Refresh", stepName & " - refresh until the work is created"
+        Wait 5
+    Loop While Timer - t < timeoutSec And Timer >= t
+End Function
