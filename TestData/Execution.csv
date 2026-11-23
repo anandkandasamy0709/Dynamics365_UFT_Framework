@@ -4,3 +4,4 @@ TC02,No,TC_Sample_Login,user:${APP_USERNAME};pass:${APP_PASSWORD}
 TC03,Yes,TC_C9652593_CancelSalesOrder,
 TC04,Yes,TC_C9652592_CreateSalesOrder,customer:S005471;item:RD-RS-LA;qty:2;payMethod:cash;workUser:rohita
 TC05,Yes,TC_C9652910_SalesOrderMultiSkuAllocated,customer:S005471;item1:RD-RS-LA;item2:SM-T-M;qty:2;requisition:abcd;delivery:Fedex-2d;origin:Email/Phone;payMethod:cash;workUser:rohita
+TC06,Yes,TC_C21456407_CreateSalesOrderFedexSO,customer:S005471;item:RD-RS-LA;qty:2;requisition:abcd;delivery:Fedex-SO;origin:Email/Phone;payMethod:cash;workUser:rohita
