@@ -530,3 +530,154 @@ Sub TC_C21456407_CreateSalesOrderFedexSO(dictData)
     D365FO_ClickLabel "OK", "Step 43 - Click OK"
     VerifyTrue D365_WaitStatusText("Delivered", 90), "Step 43 - Sales order " & salesId & " status is Delivered (was Open order)"
 End Sub
+
+
+'------------------------------------------------------------------------------
+' TC_C21449482_CreateSalesOrderFedexPO   (TestRail C21449482 - Creation of Sales Order (STA- Fedex-PO), order to delivered)
+'   TestData (all optional, defaults = the values of the case):
+'     customer:S005471;item:RD-RS-LA;qty:2;requisition:abcd;delivery:Fedex-PO;origin:Email/Phone;payMethod:cash;workUser:rohita
+'   Found at run time: sales order number, MAO allocation id (polled), payment amount (balance), shipment id, wave, work.
+'   Reuses the helpers of C9652592 / C9652910 / C21456407 (same flow, one item line, delivery mode Fedex-PO).
+'   TODO(C21449482): DATA VALIDATION REQUIRED - step 3 of the case has an empty "Select" bullet; nothing is selected for it.
+'   TODO(C21449482): verify with Object Spy: delivery mode "Fedex-PO", Pack page / container dialogs, Length / Width / Height.
+'   TODO(C21449482): step 26 "site / warehouse match the allocated warehouse" is checked against the order line values (as in C9652910).
+'------------------------------------------------------------------------------
+Sub TC_C21449482_CreateSalesOrderFedexPO(dictData)
+    Dim customer, item, qty, requisition, delivery, origin, payMethod, workUser
+    Dim status, salesId, alloc, shipmentId, site, wh
+
+    customer = GetData(dictData, "customer", "S005471")
+    item = GetData(dictData, "item", "RD-RS-LA")
+    qty = GetData(dictData, "qty", "2")
+    requisition = GetData(dictData, "requisition", "abcd")
+    delivery = GetData(dictData, "delivery", "Fedex-PO")
+    origin = GetData(dictData, "origin", "Email/Phone")
+    payMethod = GetData(dictData, "payMethod", "cash")
+    workUser = GetData(dictData, "workUser", "rohita")
+
+    status = D365_EnsureLoggedIn()
+    RunStep "Login to Dynamics 365", status
+    If Not status Then Exit Sub
+
+    ' Step 1: Accounts receivable > Orders > All sales orders
+    status = D365_OpenMenuItem("SalesTableListPage", "Step 1 - Navigate to Accounts receivable > Orders > All sales orders")
+    If Not status Then Exit Sub
+    VerifyObjectExist D365FO_Ctl("SystemDefinedNewButton"), 15, "Step 1 - All sales orders list is displayed"
+
+    ' Steps 2-3: New, customer, requisition, mode of delivery, sales origin, OK
+    status = D365FO_ClickCtl("SystemDefinedNewButton", "New", "Step 2 - Click New")
+    If Not status Then Exit Sub
+    status = D365_CreateSalesOrderFull(customer, requisition, delivery, origin, "Step 3 - Create order for " & customer)
+    If Not status Then Exit Sub
+    salesId = D365FO_GetSalesIdFromHeader()
+    VerifyTrue (salesId <> ""), "Step 3 - New sales order created for " & customer & " (order '" & salesId & "')"
+    If salesId = "" Then Exit Sub
+
+    ' Steps 4-5: Sales order lines > Add line, item + quantity; item related fields populated
+    status = D365_AddSalesLine(item, qty, "Steps 4-5 - Add sales line " & item)
+    If Not status Then Exit Sub
+    VerifyTrue (D365FO_GetInput("InventSiteId") <> ""), "Step 5 - Item related fields (site) are populated"
+
+    ' Step 6: column SNPOUniteMAOAllocationId visible and the allocation id populated (asynchronous: refresh until it is there)
+    VerifyTrue D365_AllocationColumnVisible(15), "Step 6 - Column SNPOUniteMAOAllocationId is visible in the sales order lines grid"
+    alloc = D365_WaitAllocationIds(1, 240)
+    VerifyTrue (alloc <> ""), "Step 6 - MAO allocation id is populated on the line ('" & alloc & "')"
+    site = D365FO_GetInputAny("InventSiteId")
+    wh = D365FO_GetInputAny("InventLocationId")
+
+    ' Steps 7-8: Sell > Confirm now (until confirmed)
+    status = D365FO_ClickLabel("Sell", "Step 7 - Click Sell")
+    If Not status Then Exit Sub
+    status = D365_ConfirmNowUntilDone(150, "Step 8 - Click Confirm now")
+    VerifyTrue status, "Step 8 - Order confirmed, Complete is available"
+    If Not status Then Exit Sub
+
+    ' Steps 9-12: Complete -> payment screen, Add, cash, balance, OK, Submit
+    D365_WaitCompleteButton 90
+    If Not D365FO_LabelExists("Complete", 2) Then D365FO_OpenTabWith "Complete", Array("Commerce", "Sales order", "General", "Manage")
+    status = D365FO_ClickLabel("Complete", "Step 9 - Click Complete")
+    If Not status Then Exit Sub
+    VerifyObjectExist GetPage().WebElement("xpath:=(//*[normalize-space(text())='Payments'])[1]"), 20, "Step 9 - Payment screen is displayed"
+    status = D365_PayCash(payMethod, "Steps 10-12 - Cash payment")
+    If Not status Then Exit Sub
+
+    ' Step 13: Warehouse > Release to warehouse -> wave
+    status = D365FO_ClickRibbonTab("Warehouse", "Step 13 - Warehouse tab")
+    If Not status Then Exit Sub
+    status = D365FO_ClickLabel("Release to warehouse", "Step 13 - Release to warehouse")
+    If Not status Then Exit Sub
+    VerifyTrue D365_WaitWaveMessage(90), "Step 13 - Wave generated"
+
+    ' Step 14: Shipment details
+    status = D365_OpenShipmentDetails("Step 14 - Shipment details")
+    VerifyTrue status, "Step 14 - Shipment details page is open"
+    If Not status Then Exit Sub
+    shipmentId = D365_ReadShipmentId()
+    VerifyTrue (shipmentId <> ""), "Step 14 - Shipment id read at run time ('" & shipmentId & "')"
+    If shipmentId = "" Then Exit Sub
+
+    ' Steps 15-17: wave id link, select shipment, Process
+    status = D365_ProcessWaveOfShipment(shipmentId, "Steps 15-17 - Process wave")
+    If Not status Then Exit Sub
+    VerifyTrue D365FO_WaitTextContains("rocessed", 60), "Step 17 - Wave is processed"
+
+    ' Step 18: back to the order, Warehouse > Work details
+    status = D365_BackToOrder(salesId, "Step 18 - Back to the order")
+    If Not status Then
+        status = D365_OpenMenuItem("SalesTableListPage", "Step 18 - All sales orders")
+        If Not status Then Exit Sub
+        status = D365_SelectSalesOrder(salesId, "Step 18 - Select sales order " & salesId)
+        If Not status Then Exit Sub
+        status = D365_EnsureOrderDetailsOpen(salesId, "Step 18 - Order details")
+        If Not status Then Exit Sub
+    End If
+    status = D365FO_ClickLabel("Warehouse", "Step 18 - Warehouse dropdown of the Sales order lines")
+    If Not status Then Exit Sub
+    status = D365FO_ClickLabel("Work details", "Step 18 - Work details")
+    If Not status Then Exit Sub
+    VerifyObjectExist GetPage().WebElement("xpath:=(//*[@data-dyn-controlname='WHSWorkTable' or normalize-space(text())='Work'])[1]"), 20, "Step 18 - Work page is open"
+    VerifyTrue D365_WaitWorkRowsStrict(420, "Step 18"), "Step 18 - Work of the order is listed (Work ID shown in the grid)"
+
+    ' Steps 19-22: Work > Complete work, user, Validate, Complete work
+    status = D365_CompleteWork(workUser, "Steps 19-22 - Complete work")
+    If Not status Then Exit Sub
+
+    ' Steps 23-24: shipment id (kept from step 14), Back
+    VerifyTrue D365FO_BackToWorkPage("Step 24 - Back"), "Step 24 - Back to the Work page"
+    VerifyTrue D365_WaitStatusText("Closed", 90), "Step 22 - Work status is Closed after Complete work"
+
+    ' Steps 25-28: Pack search, profile check (site / warehouse), OK, shipment id
+    status = D365_PackShipment(shipmentId, site, wh, "Steps 25-28 - Pack")
+    If Not status Then Exit Sub
+    ' Steps 29-37: new container, select lines, Pack, close container, weight / dimensions, OK
+    status = D365_PackContainer("Steps 29-37 - Container")
+    If Not status Then Exit Sub
+
+    ' Steps 38-39: shipment id link, complete shipment (this environment names the button "Confirm shipment")
+    status = D365_OpenShipmentFromPack(shipmentId, "Step 38 - Click shipment id")
+    If Not status Then Exit Sub
+    If D365FO_LabelExists("Complete shipment", 3) Then
+        status = D365FO_ClickLabel("Complete shipment", "Step 39 - Complete shipment")
+    Else
+        status = D365FO_ClickLabel("Confirm shipment", "Step 39 - Complete shipment (button is named Confirm shipment)")
+    End If
+    If Not status Then Exit Sub
+    VerifyTrue D365FO_WaitText("Shipped", 60), "Step 39 - Shipment is completed (status Shipped)"
+
+    ' Step 40: select the sales order of this run
+    status = D365_OpenMenuItem("SalesTableListPage", "Step 40 - All sales orders")
+    If Not status Then Exit Sub
+    status = D365_SelectSalesOrder(salesId, "Step 40 - Select sales order " & salesId)
+    If Not status Then Exit Sub
+
+    ' Steps 41-43: Pick and pack > Post packing slip, OK, OK -> Delivered
+    status = D365FO_ClickTab("Pick and pack", "Step 41 - Pick and pack")
+    If Not status Then Exit Sub
+    status = D365FO_ClickLabel("Post packing slip", "Step 41 - Post packing slip")
+    If Not status Then Exit Sub
+    VerifyObjectExist GetPage().WebElement("xpath:=(//*[contains(normalize-space(text()),'acking slip')])[1]"), 15, "Step 41 - Packing slip posting dialog is open"
+    status = D365FO_ClickLabel("OK", "Step 42 - Click OK")
+    If Not status Then Exit Sub
+    D365FO_ClickLabel "OK", "Step 43 - Click OK"
+    VerifyTrue D365_WaitStatusText("Delivered", 90), "Step 43 - Sales order " & salesId & " status is Delivered (was Open order)"
+End Sub
